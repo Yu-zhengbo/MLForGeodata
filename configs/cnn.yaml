@@ -1,0 +1,80 @@
+name: cnn
+
+input_dim: 20
+in_channels: 1
+
+nodes:
+  - name: a
+    type: conv1d
+    in_channels: 1
+    out_channels: 32
+    kernel_size: 3
+    padding: 1
+    norm_type: batchnorm1d
+    activation: relu
+    input_from: input
+
+  # - name: a
+  #   type: self_attn_with_ffa
+  #   in_channels: 1
+  #   out_channels: 32
+  #   hidden_channels: 16
+  #   heads: 1
+  #   dropout: 0.2
+  #   input_from: input
+
+
+  - name: b
+    type: conv1d
+    in_channels: 32
+    out_channels: 32
+    kernel_size: 3
+    padding: 1
+    norm_type: batchnorm1d
+    activation: relu
+    input_from: a
+
+  - name: c
+    type: conv1d
+    in_channels: 32
+    out_channels: 32
+    kernel_size: 3
+    padding: 1
+    norm_type: batchnorm1d
+    activation: relu
+    input_from: a
+
+  - name: merge
+    type: add      # or concat
+    input_from: [b, c]
+
+  - name: d
+    type: conv1d
+    in_channels: 32
+    out_channels: 64
+    kernel_size: 3
+    padding: 1
+    norm_type: batchnorm1d
+    activation: relu
+    input_from: merge
+
+  - name: pool
+    type: adaptiveavgpool1d
+    output_size: 1
+    input_from: d
+
+  - name: flatten
+    type: flatten
+    input_from: pool
+
+  - name: drop
+    type: dropout
+    p: 0.2
+    input_from: flatten
+
+  - name: fc
+    type: linear
+    in_features: 64
+    out_features: 1
+    activation: sigmoid
+    input_from: drop
