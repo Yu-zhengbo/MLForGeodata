@@ -1,4 +1,4 @@
-name: cnn2d
+name: cnn3d
 
 params: 
   input_dim: 4 # 不重要
@@ -10,42 +10,33 @@ params:
 
 nodes:
   - name: a
-    type: conv2d
-    in_channels: 7
+    type: conv3d
+    in_channels: 7  #需要等于params: inchannels
     out_channels: 32
     kernel_size: 3
     padding: 1
-    norm_type: batchnorm2d
+    norm_type: batchnorm3d
     activation: relu
     input_from: input
 
-  # - name: a
-  #   type: self_attn_with_ffa
-  #   in_channels: 1
-  #   out_channels: 32
-  #   hidden_channels: 16
-  #   heads: 1
-  #   dropout: 0.2
-  #   input_from: input
-
 
   - name: b
-    type: conv2d
+    type: conv3d
     in_channels: 32
     out_channels: 32
     kernel_size: 3
     padding: 1
-    norm_type: batchnorm2d
+    norm_type: batchnorm3d
     activation: relu
     input_from: a
 
   - name: c
-    type: conv2d
+    type: conv3d
     in_channels: 32
     out_channels: 32
     kernel_size: 3
     padding: 1
-    norm_type: batchnorm2d
+    norm_type: batchnorm3d
     activation: relu
     input_from: a
 
@@ -54,32 +45,35 @@ nodes:
     input_from: [b, c]
 
   - name: d
-    type: conv2d
+    type: conv3d
     in_channels: 32
     out_channels: 64
     kernel_size: 3
     padding: 1
-    norm_type: batchnorm2d
+    norm_type: batchnorm3d
     activation: relu
     input_from: merge
 
-  - name: pool
-    type: adaptiveavgpool2d
-    output_size: 1
-    input_from: d
+  # - name: pool
+  #   type: adaptiveavgpool3d
+  #   output_size: 1
+  #   input_from: d
 
-  - name: flatten
-    type: flatten
-    input_from: pool
+  # - name: flatten
+  #   type: flatten
+  #   input_from: d
 
   - name: drop
     type: dropout
     p: 0.2
-    input_from: flatten
+    input_from: d
 
-  - name: fc
-    type: linear
-    in_features: 64
-    out_features: 2
-    activation: sigmoid
+  - name: e
+    type: conv3d
+    in_channels: 64
+    out_channels: 2
+    kernel_size: 3
+    padding: 1
+    norm_type: batchnorm3d
+    # activation: sigmoid
     input_from: drop

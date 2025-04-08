@@ -12,7 +12,7 @@ def parse_args():
     parser.add_argument('--xyz', type=str, default='xyz', help='是否包含坐标')
     parser.add_argument('--use_loc', type=bool, default=False, help='是否使用坐标')
     parser.add_argument('--gnn', type=int, default=0,choices=[0,1,2],help='none 0, gnn 1 and cnn folown by location 2')
-    parser.add_argument('--config', type=str, default='./configs/cnn.yaml', help='模型配置')
+    parser.add_argument('--config', type=str, default='./configs/cnn3d.yaml', help='模型配置')
     parser.add_argument('--save', type=bool, default=True, help='保存结果的路径')
     return parser.parse_args()
 
@@ -41,7 +41,7 @@ def main():
         print(f"使用模型：{model.__class__.__name__}")
 
     # 读取数据
-    x_train,y_train,x_val,y_val,x_test,scaler,loc_data,coloms = read_data(args.data,args.xyz,args.use_loc)
+    x_train,y_train,x_val,y_val,x_test,scaler,loc_data,coloms = read_data(args.data,args.xyz,args.use_loc,args.model)
     # 训练模型
 
 

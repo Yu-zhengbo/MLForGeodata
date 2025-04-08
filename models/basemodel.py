@@ -118,7 +118,7 @@ class PytorchBaseModel(nn.Module):
             name = node["name"]
             input_from = getattr(self, f"{name}_input", "input")
             # input_from = input_from if input_from is not None else "input"
-            if not isinstance(input_from, str):
+            if not isinstance(input_from, str):  # concat or add module et al.
                 inputs = [cache[k] for k in input_from]
                 out = self.layers[name](*inputs)
             else:
@@ -133,7 +133,7 @@ class PLBaseModel(pl.LightningModule):
         self.save_hyperparameters()
         self.model = PytorchBaseModel(config)
         # self.loss_fn = nn.BCEWithLogitsLoss()
-        self.loss_fn = nn.CrossEntropyLoss()
+        self.loss_fn = nn.CrossEntropyLoss(ignore_index=-1)
         self.bs = config.params.batch
         self.lr = config.params.lr
         self.epoch = config.params.epoch
@@ -157,6 +157,15 @@ class PLBaseModel(pl.LightningModule):
         logits = self(x)
         loss = self.loss_fn(logits, y)
         preds = torch.softmax(logits, dim=1)
+
+        if self.name == 'cnn3d':
+            k_size = y.shape[-1]
+            y = y[:,k_size//2,k_size//2,k_size//2]
+            preds = preds[:,:,k_size//2,k_size//2,k_size//2]
+        elif self.name == 'cnn2d':
+            k_size = y.shape[-1]
+            y = y[:,k_size//2,k_size//2]
+            preds = preds[:,:,k_size//2,k_size//2]
         acc = (preds.argmax(dim=1) == y).float().mean()
         self.log("val_loss", loss, prog_bar=True)
         self.log("val_acc", acc, prog_bar=True)
@@ -176,7 +185,12 @@ class DLModel(MLModel):
         self.bs = model.bs
         stop_callback = EarlyStopping(monitor="val_loss", patience=5,verbose=True, mode="min")
         # stop_callback = EarlyStopping(monitor="val_acc", patience=5,verbose=True, mode="max")
-        self.trainer = pl.Trainer(max_epochs=model.epoch, accelerator="auto", callbacks=[stop_callback])
+
+        # Conv3d不可以用MPS
+        if model.name != 'cnn3d':
+            self.trainer = pl.Trainer(max_epochs=model.epoch, accelerator="auto", callbacks=[stop_callback])
+        else:
+            self.trainer = pl.Trainer(max_epochs=model.epoch, accelerator="cpu", callbacks=[stop_callback])
 
         self.train_loader, self.val_loader, self.x_test = self.load_data(x_train,y_train,x_val,y_val,x_test)
     
@@ -208,7 +222,8 @@ class DLModel(MLModel):
         if x is None:
             # report no test data with detail error message
             assert False, "No test data provided"
-        return x,self.model(x).detach().numpy()
+        # return x,self.model(x).detach().numpy()
+        return x,torch.softmax(self.model(x), dim=1).detach().numpy()
     
     def predict(self,x=None):
         x,result = self.predict_proba(x)
@@ -227,6 +242,19 @@ class DLModel(MLModel):
         
         _,y_pred = self.predict(x)
         if task_type == "classification":
+
+            #只需要中心点
+            if self.model.name == 'cnn3d':
+                y_true = y_true[:,1,1,1]
+                y_pred = y_pred[:,1,1,1]
+
+            y_true = y_true.reshape(-1)
+            y_pred = y_pred.reshape(-1)
+            #忽略-1的label
+            y_pred = y_pred[y_true!=-1]
+            y_true = y_true[y_true!=-1]
+
+
             acc = accuracy_score(y_true, y_pred)
             f1 = f1_score(y_true, y_pred)
             precision = precision_score(y_true, y_pred)
