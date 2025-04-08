@@ -1,5 +1,5 @@
 import argparse
-from models import MODEL_REGISTRY, BaseModel, MLModel
+from models import MODEL_REGISTRY, MLModel, PLBaseModel, DLModel
 from omegaconf import OmegaConf
 from utils import read_data,distinguish,save_data
 import numpy as np
@@ -12,7 +12,7 @@ def parse_args():
     parser.add_argument('--xyz', type=str, default='xyz', help='是否包含坐标')
     parser.add_argument('--use_loc', type=bool, default=False, help='是否使用坐标')
     parser.add_argument('--gnn', type=int, default=0,choices=[0,1,2],help='none 0, gnn 1 and cnn folown by location 2')
-    parser.add_argument('--config', type=str, default='', help='模型配置')
+    parser.add_argument('--config', type=str, default='./configs/cnn.yaml', help='模型配置')
     parser.add_argument('--save', type=bool, default=True, help='保存结果的路径')
     return parser.parse_args()
 
@@ -25,27 +25,31 @@ def main():
     else:
         options = None
 
-
-    if args.model not in MODEL_REGISTRY:
-        raise ValueError(f"模型 {args.model} 不在支持列表中: {list(MODEL_REGISTRY.keys())}")
-    ModelClass = MODEL_REGISTRY[args.model]
-    if options is not None:
-        print(f"使用配置：{args.config}")
-        model = ModelClass(**options)
+    model_type = distinguish(args.model)
+    if model_type == "machine":
+        if args.model not in MODEL_REGISTRY:
+            raise ValueError(f"模型 {args.model} 不在支持列表中: {list(MODEL_REGISTRY.keys())}")
+        ModelClass = MODEL_REGISTRY[args.model]
+        if options is not None:
+            print(f"使用配置：{args.config}")
+            model = ModelClass(**options)
+        else:
+            model = ModelClass()
+        print(f"使用模型：{model.__class__.__name__}")
     else:
-        model = ModelClass()
-    print(f"使用模型：{model.__class__.__name__}")
+        model = PLBaseModel(config)
+        print(f"使用模型：{model.__class__.__name__}")
 
     # 读取数据
     x_train,y_train,x_val,y_val,x_test,scaler,loc_data,coloms = read_data(args.data,args.xyz,args.use_loc)
     # 训练模型
 
 
-    model_type = distinguish(args.model)
+    # model_type = distinguish(args.model)
     if model_type == "machine":
         model = MLModel(model,x_train,y_train,x_val,y_val,x_test)
     else:
-        pass
+        model = DLModel(model,x_train,y_train,x_val,y_val,x_test)
 
     model.train()
     model.evaluate()

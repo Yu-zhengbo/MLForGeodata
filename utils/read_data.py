@@ -68,6 +68,8 @@ def read_data(file_path,xyz='xyz',use_loc=False,fixed_split=False,test_size=0.2,
 def save_data(model,scaler,loc_data,coloms,save_path):
     x_test,y_pred = model.predict()
     _,y_score = model.predict_proba()
+    if len(x_test.shape) > 2:
+        x_test = x_test.squeeze(dim=1).numpy()
     x_test = scaler.inverse_transform(x_test)
     saved_data = np.concatenate((loc_data,x_test,y_pred.reshape(-1,1),y_score[:,1].reshape(-1,1)),axis=1)
     saved_data = pd.DataFrame(saved_data,columns=coloms)

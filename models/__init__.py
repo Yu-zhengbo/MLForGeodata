@@ -1,4 +1,4 @@
-from .basemodel import BaseModel,MLModel
+from .basemodel import BaseModel,MLModel,PytorchBaseModel,PLBaseModel,DLModel
 from .machine_learning_alogorithm import MACHINE_LEARNING_MODEL_REGISTRY
 from .dl import DEEP_LEARNING_MODEL_REGISTRY
 
